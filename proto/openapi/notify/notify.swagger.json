@@ -1,0 +1,521 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "notify/notify.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "NotifyService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/notify.v1.NotifyService/CancelScheduledByMessageId": {
+      "post": {
+        "summary": "取消預約訊息",
+        "operationId": "NotifyService_CancelScheduledByMessageId",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CancelScheduledByMessageIdRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotifyService"
+        ]
+      }
+    },
+    "/notify.v1.NotifyService/ListStatusWithPaging": {
+      "post": {
+        "summary": "查詢發送狀態",
+        "operationId": "NotifyService_ListStatusWithPaging",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListStatusWithPagingResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ListStatusWithPagingRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotifyService"
+        ]
+      }
+    },
+    "/notify.v1.NotifyService/SendBatchMail": {
+      "post": {
+        "summary": "流式 RPC：批量郵件發送",
+        "operationId": "NotifyService_SendBatchMail",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1SendMailResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of v1SendMailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendMailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotifyService"
+        ]
+      }
+    },
+    "/notify.v1.NotifyService/SendBatchSms": {
+      "post": {
+        "summary": "流式 RPC：批量簡訊發送",
+        "operationId": "NotifyService_SendBatchSms",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1SendSmsResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of v1SendSmsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendSmsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotifyService"
+        ]
+      }
+    },
+    "/notify.v1.NotifyService/SendMail": {
+      "post": {
+        "summary": "非流式 RPC：單筆或少量郵件發送",
+        "operationId": "NotifyService_SendMail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SendMailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendMailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotifyService"
+        ]
+      }
+    },
+    "/notify.v1.NotifyService/SendSms": {
+      "post": {
+        "summary": "非流式 RPC：單筆或少量簡訊發送",
+        "operationId": "NotifyService_SendSms",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SendSmsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendSmsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotifyService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1CancelScheduledByMessageIdRequest": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string",
+          "title": "訊息 ID"
+        }
+      },
+      "title": "*\n取消預約訊息請求"
+    },
+    "v1ListStatusWithPagingRequest": {
+      "type": "object",
+      "properties": {
+        "messageType": {
+          "$ref": "#/definitions/v1MessageType",
+          "title": "訊息類型（SMS 或 MAIL）"
+        },
+        "messageId": {
+          "type": "string",
+          "title": "訊息 ID"
+        },
+        "receiver": {
+          "type": "string",
+          "title": "收件者手機號碼或電子郵件地址"
+        },
+        "page": {
+          "$ref": "#/definitions/v1PageRequest",
+          "title": "分頁請求資訊"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "起始時間（限制90天內）"
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "結束時間（限制90天內）"
+        }
+      },
+      "title": "*\n查詢發送狀態請求（支持分頁）"
+    },
+    "v1ListStatusWithPagingResponse": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Target"
+          },
+          "title": "訊息發送紀錄"
+        },
+        "paging": {
+          "$ref": "#/definitions/v1Paging",
+          "title": "分頁資訊"
+        }
+      },
+      "title": "*\n查詢發送狀態響應"
+    },
+    "v1Mail": {
+      "type": "object",
+      "properties": {
+        "senderAddress": {
+          "type": "string",
+          "title": "寄件者電子郵件地址"
+        },
+        "senderName": {
+          "type": "string",
+          "title": "寄件者名稱"
+        },
+        "subject": {
+          "type": "string",
+          "title": "郵件主旨"
+        },
+        "body": {
+          "type": "string",
+          "title": "郵件內容"
+        }
+      },
+      "title": "*\n郵件"
+    },
+    "v1MessageType": {
+      "type": "string",
+      "enum": [
+        "MESSAGE_TYPE_UNSPECIFIED",
+        "SMS",
+        "MAIL"
+      ],
+      "default": "MESSAGE_TYPE_UNSPECIFIED",
+      "title": "*\n訊息類型枚舉"
+    },
+    "v1PageRequest": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "format": "int32",
+          "title": "當前分頁索引"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int32",
+          "title": "每頁筆數"
+        },
+        "sortField": {
+          "type": "string",
+          "title": "排序欄位"
+        },
+        "sortOrder": {
+          "type": "string",
+          "title": "排序方向（ASC 或 DESC）"
+        }
+      },
+      "title": "*\n分頁請求資訊"
+    },
+    "v1Paging": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sortField": {
+          "type": "string",
+          "title": "排序欄位"
+        },
+        "sortOrder": {
+          "type": "string",
+          "title": "排序方向（ASC 或 DESC）"
+        }
+      },
+      "title": "*\n分頁資訊響應結構"
+    },
+    "v1SendMailRequest": {
+      "type": "object",
+      "properties": {
+        "mail": {
+          "$ref": "#/definitions/v1Mail",
+          "title": "郵件資訊"
+        },
+        "receivers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "收件者電子郵件地址"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "預約時間（限制30天內，可選填）"
+        }
+      },
+      "title": "*\n發送郵件請求"
+    },
+    "v1SendMailResponse": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string",
+          "title": "訊息 ID"
+        }
+      },
+      "title": "*\n發送郵件響應"
+    },
+    "v1SendSmsRequest": {
+      "type": "object",
+      "properties": {
+        "sms": {
+          "$ref": "#/definitions/v1Sms",
+          "title": "簡訊"
+        },
+        "receivers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "收件者手機號碼"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "預約時間（限制30天內，可選填）"
+        }
+      },
+      "title": "*\n發送簡訊請求"
+    },
+    "v1SendSmsResponse": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string",
+          "title": "訊息 ID"
+        }
+      },
+      "title": "*\n發送簡訊響應"
+    },
+    "v1Sms": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "title": "簡訊內容"
+        }
+      },
+      "title": "*\n簡訊"
+    },
+    "v1Target": {
+      "type": "object",
+      "properties": {
+        "messageType": {
+          "type": "string",
+          "title": "訊息類型（SMS 或 MAIL）"
+        },
+        "messageId": {
+          "type": "string",
+          "title": "訊息 ID"
+        },
+        "messageContent": {
+          "type": "string",
+          "title": "訊息內容（文字 或 HTML）"
+        },
+        "receiver": {
+          "type": "string",
+          "title": "收件者（手機號碼或電子郵件地址）"
+        },
+        "status": {
+          "type": "string",
+          "title": "寄送狀態"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "建立時間"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "更新時間"
+        }
+      },
+      "title": "*\n發送記錄資訊"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package notify.v1.error;
+
+option go_package = "proto/pkg/notify/v1/error";
+
+enum ErrorReasonCode {
+  // 通用錯誤原因代碼: 0 ~ 999
+  // 當不需要太細緻的錯誤原因時，可以直接使用這些代碼
+  ERR_COMMON_INTERNAL = 0;
+  ERR_COMMON_INVALID_ARGUMENT = 1;
+
+  ERR_NOTIFY_INVALID_RECEIVER = 1000;
+  ERR_NOTIFY_RECEIVER_EMPTY = 1001;
+  ERR_NOTIFY_SUBJECT_EMPTY = 1002;
+  ERR_NOTIFY_BODY_EMPTY = 1003;
+  ERR_NOTIFY_MESSAGE_NOT_FOUND = 1004;
+  ERR_NOTIFY_MESSAGE_IS_ENQUEUE_CANNOT_CANCEL = 1005;
+}

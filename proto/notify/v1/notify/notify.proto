@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package notify.v1;
+
+option go_package = "proto/pkg/notify/v1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+/**
+ * 簡訊
+ */
+message Sms {
+  string body = 1; // 簡訊內容
+}
+
+/**
+ * 發送簡訊請求
+ */
+message SendSmsRequest {
+  Sms sms = 1;                                 // 簡訊
+  repeated string receivers = 2;               // 收件者手機號碼
+  google.protobuf.Timestamp scheduled_at = 3;  // 預約時間（限制30天內，可選填）
+}
+
+/**
+ * 發送簡訊響應
+ */
+message SendSmsResponse {
+  string message_id = 1; // 訊息 ID
+}
+
+/**
+ * 郵件
+ */
+message Mail {
+  google.protobuf.StringValue sender_address = 1;  // 寄件者電子郵件地址
+  google.protobuf.StringValue sender_name = 2;     // 寄件者名稱
+  string subject = 3;                              // 郵件主旨
+  string body = 4;                                 // 郵件內容
+}
+
+/**
+ * 發送郵件請求
+ */
+message SendMailRequest {
+  Mail mail = 1;                               // 郵件資訊
+  repeated string receivers = 2;               // 收件者電子郵件地址
+  google.protobuf.Timestamp scheduled_at = 3;  // 預約時間（限制30天內，可選填）
+}
+
+/**
+ * 發送郵件響應
+ */
+message SendMailResponse {
+  string message_id = 1; // 訊息 ID
+}
+
+/**
+ * 取消預約訊息請求
+ */
+message CancelScheduledByMessageIdRequest {
+  string message_id = 1; // 訊息 ID
+}
+
+/**
+ * 訊息類型枚舉
+ */
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  SMS = 1;
+  MAIL = 2;
+}
+
+/**
+ * 分頁請求資訊
+ */
+message PageRequest {
+  int32 index = 1;       // 當前分頁索引
+  int32 size = 2;        // 每頁筆數
+  string sort_field = 3; // 排序欄位
+  string sort_order = 4; // 排序方向（ASC 或 DESC）
+}
+
+/**
+ * 查詢發送狀態請求（支持分頁）
+ */
+message ListStatusWithPagingRequest {
+  MessageType message_type = 1;              // 訊息類型（SMS 或 MAIL）
+  oneof query {                              // 查詢條件（選擇一種）
+    string message_id = 2;                   // 訊息 ID
+    string receiver = 3;                     // 收件者手機號碼或電子郵件地址
+  }
+  PageRequest page = 4;              // 分頁請求資訊
+  google.protobuf.Timestamp start_at = 5;    // 起始時間（限制90天內）
+  google.protobuf.Timestamp end_at = 6;      // 結束時間（限制90天內）
+}
+
+/**
+ * 發送記錄資訊
+ */
+message Target {
+  string message_type = 1;             // 訊息類型（SMS 或 MAIL）
+  string message_id = 2;                    // 訊息 ID
+  string message_content = 3;               // 訊息內容（文字 或 HTML）
+  string receiver = 4;                      // 收件者（手機號碼或電子郵件地址）
+  string status = 5;                        // 寄送狀態
+  google.protobuf.Timestamp created_at = 6; // 建立時間
+  google.protobuf.Timestamp updated_at = 7; // 更新時間
+}
+
+/**
+ * 分頁資訊響應結構
+ */
+message Paging {
+  int32 index = 1;
+  int32 size = 2;
+  int32 total = 3;
+  string sort_field = 4; // 排序欄位
+  string sort_order = 5; // 排序方向（ASC 或 DESC）
+}
+
+/**
+ * 查詢發送狀態響應
+ */
+message ListStatusWithPagingResponse {
+  repeated Target target = 1;               // 訊息發送紀錄
+  Paging paging = 2;                        // 分頁資訊
+}
+
+/**
+ * 通知服務
+ */
+service NotifyService {
+  // 非流式 RPC：單筆或少量簡訊發送
+  rpc SendSms(SendSmsRequest) returns (SendSmsResponse);
+  // 流式 RPC：批量簡訊發送
+  rpc SendBatchSms(stream SendSmsRequest) returns (stream SendSmsResponse);
+  // 非流式 RPC：單筆或少量郵件發送
+  rpc SendMail(SendMailRequest) returns (SendMailResponse);
+  // 流式 RPC：批量郵件發送
+  rpc SendBatchMail(stream SendMailRequest) returns (stream SendMailResponse);
+  // 取消預約訊息
+  rpc CancelScheduledByMessageId(CancelScheduledByMessageIdRequest) returns (google.protobuf.Empty);
+  // 查詢發送狀態
+  rpc ListStatusWithPaging(ListStatusWithPagingRequest) returns (ListStatusWithPagingResponse);
+}
