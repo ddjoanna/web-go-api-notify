@@ -1,0 +1,8 @@
+FROM postgres:15
+
+# 安裝 pg_partman 和 pg_cron
+RUN apt-get update && apt-get install -y postgresql-15-cron postgresql-15-partman
+
+
+RUN echo "shared_preload_libraries='pg_cron,pg_partman_bgw'" >> /usr/share/postgresql/postgresql.conf.sample
+RUN echo "cron.database_name='ddjoanna'" >> /usr/share/postgresql/postgresql.conf.sample
