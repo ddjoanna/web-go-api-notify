@@ -19,7 +19,7 @@ func NewConsumerGroup(
 	lc fx.Lifecycle,
 	config *shared.Config,
 	consumer *consumer.Consumer,
-) sarama.ConsumerGroup {
+) []sarama.ConsumerGroup {
 	topics := []string{
 		shared.KafkaTopicSms,
 		shared.KafkaTopicMail,
@@ -36,34 +36,41 @@ func NewConsumerGroup(
 
 	// Setup Kafka consumer
 	log.Infof("Consumer connecting to Kafka broker at %s", config.KafkaBrokers)
-	consumerGroup, err := sarama.NewConsumerGroup(
-		strings.Split(config.KafkaBrokers, ","),
-		shared.KafkaGroupIdNotify,
-		consumerConfig,
-	)
-	if err != nil {
-		log.WithError(err).Fatalf("Error creating consumer group client: %v", err)
-	}
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go func() {
-				propagators := propagation.TraceContext{}
-				consumer := otelsarama.WrapConsumerGroupHandler(consumer, otelsarama.WithPropagators(propagators))
-				for {
-					err := consumerGroup.Consume(context.Background(), topics, consumer)
-					if err != nil {
-						if errors.Is(err, sarama.ErrClosedConsumerGroup) {
-							return
+	var consumerGroups []sarama.ConsumerGroup
+
+	for i := 0; i < config.KafkaConsumerGroupInstanceNum; i++ {
+		consumerGroup, err := sarama.NewConsumerGroup(
+			strings.Split(config.KafkaBrokers, ","),
+			shared.KafkaGroupIdNotify,
+			consumerConfig,
+		)
+		if err != nil {
+			log.WithError(err).Fatalf("Error creating consumer group client: %v", err)
+		}
+		consumerGroups = append(consumerGroups, consumerGroup)
+
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go func() {
+					propagators := propagation.TraceContext{}
+					consumer := otelsarama.WrapConsumerGroupHandler(consumer, otelsarama.WithPropagators(propagators))
+					for {
+						err := consumerGroup.Consume(context.Background(), topics, consumer)
+						if err != nil {
+							if errors.Is(err, sarama.ErrClosedConsumerGroup) {
+								return
+							}
+							log.Panicf("Error from consumer: %v", err)
 						}
-						log.Panicf("Error from consumer: %v", err)
 					}
-				}
-			}()
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			return consumerGroup.Close()
-		},
-	})
-	return consumerGroup
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				return consumerGroup.Close()
+			},
+		})
+	}
+
+	return consumerGroups
 }

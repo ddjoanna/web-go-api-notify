@@ -155,6 +155,13 @@ func main() {
 				EnvVars:     []string{"KAFKA_VERSION"},
 				Destination: &config.KafkaVersion,
 			},
+			&cli.IntFlag{
+				Name:        "kafka-consumer-group-instance-num",
+				Usage:       "Kafka consumer group instance number",
+				EnvVars:     []string{"KAFKA_CONSUMER_GROUP_INSTANCE_NUM"},
+				Value:       1,
+				Destination: &config.KafkaConsumerGroupInstanceNum,
+			},
 		},
 		Action: execute,
 	}
@@ -204,7 +211,7 @@ func execute(cCtx *cli.Context) error {
 			func(*metricssdk.MeterProvider) {},
 			func(*grpc.Server) {},
 			func(*gorm.DB) {},
-			func(sarama.ConsumerGroup) {},
+			func([]sarama.ConsumerGroup) {},
 			func(
 				consumer *consumer.Consumer,
 			) {
