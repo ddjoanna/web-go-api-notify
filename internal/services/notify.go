@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	shared "notify-service/internal"
@@ -10,8 +11,10 @@ import (
 	model "notify-service/internal/models"
 	util "notify-service/internal/utils"
 	errorpb "proto/pkg/notify/v1/error"
+	"sync"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/bwmarrin/snowflake"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -23,6 +26,7 @@ type NotifyService struct {
 	config    *shared.Config
 	snowflake *snowflake.Node
 	aesGcm    *component.AesGcm
+	producer  sarama.SyncProducer
 }
 
 func NewNotifyService(
@@ -30,12 +34,14 @@ func NewNotifyService(
 	config *shared.Config,
 	snowflake *snowflake.Node,
 	aesGcm *component.AesGcm,
+	producer sarama.SyncProducer,
 ) *NotifyService {
 	return &NotifyService{
 		db:        db,
 		config:    config,
 		snowflake: snowflake,
 		aesGcm:    aesGcm,
+		producer:  producer,
 	}
 }
 
@@ -79,6 +85,13 @@ func (s NotifyService) PublishSmsMessage(ctx context.Context, in model.SendSmsRe
 
 	if err != nil {
 		return nil, err
+	}
+
+	if message.ScheduledAt == nil {
+		err := s.handleEnqueue(ctx, entity.MessageType_MAIL, queues)
+		if err != nil {
+			return nil, s.ServerError("handle enqueue failed", errorpb.ErrorReasonCode_ERR_COMMON_INTERNAL)
+		}
 	}
 
 	return message, nil
@@ -126,6 +139,13 @@ func (s NotifyService) PublishMailMessage(ctx context.Context, in model.SendMail
 
 	if transaction != nil {
 		return nil, transaction
+	}
+
+	if message.ScheduledAt == nil {
+		err := s.handleEnqueue(ctx, entity.MessageType_MAIL, queues)
+		if err != nil {
+			return nil, s.ServerError("handle enqueue failed", errorpb.ErrorReasonCode_ERR_COMMON_INTERNAL)
+		}
 	}
 
 	return message, nil
@@ -316,4 +336,199 @@ func (s NotifyService) ListStatusWithPaging(ctx context.Context, in model.ListSt
 	}
 
 	return targets, total, nil
+}
+
+func (s *NotifyService) handleEnqueue(
+	ctx context.Context,
+	messageType entity.MessageType,
+	queues []*entity.Queue,
+) error {
+	queueIDs, messageIDs := extractBatchData(queues)
+
+	if err := s.batchUpdateDatabase(
+		ctx,
+		queueIDs,
+		messageIDs,
+		entity.QueueStatus_PROCESS,
+		nil,
+	); err != nil {
+		return fmt.Errorf("failed to update process queues: %w", err)
+	}
+
+	sem := make(chan struct{}, 10)
+	var wg sync.WaitGroup
+	successes := &sync.Map{}
+	traceIDs := &sync.Map{}
+
+	for _, queue := range queues {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(q *entity.Queue) {
+			defer func() {
+				<-sem
+				wg.Done()
+			}()
+
+			msg, err := s.createKafkaMessage(messageType, q)
+			if err != nil {
+				log.WithContext(ctx).Errorf("Failed to create kafka message: %v", err)
+				return
+			}
+
+			if err := withRetry(ctx, 3, func() error {
+				_, _, err := s.producer.SendMessage(msg)
+				return err
+			}); err != nil {
+				log.WithContext(ctx).Errorf("Failed to send message to kafka: %v", err)
+			} else {
+				traceId, err := msg.Key.Encode()
+				if err != nil {
+					log.WithContext(ctx).Errorf("Failed to encode kafka message key: %v", err)
+					return
+				}
+
+				successes.Store(q.Id, q.MessageId)
+				traceIDs.Store(q.Id, traceId)
+			}
+		}(queue)
+	}
+
+	wg.Wait()
+
+	// 提取成功隊列的 ID 和 Message ID
+	successQueueIDs := make([]string, 0)
+	successMessageIDs := make([]string, 0)
+	traceIDMap := make(map[string]string)
+
+	successes.Range(func(key, value any) bool {
+		successQueueIDs = append(successQueueIDs, key.(string))
+		successMessageIDs = append(successMessageIDs, value.(string))
+		return true
+	})
+
+	traceIDs.Range(func(key, value any) bool {
+		traceIDMap[key.(string)] = string(value.([]byte)) // 轉換 byte 到 string
+		return true
+	})
+
+	if err := s.batchUpdateDatabase(
+		ctx,
+		successQueueIDs,
+		successMessageIDs,
+		entity.QueueStatus_ENQUEUED,
+		traceIDMap,
+	); err != nil {
+		log.WithContext(ctx).Errorf("Failed to update enqueued queues: %v", err)
+	}
+
+	return nil
+}
+
+func (s *NotifyService) batchUpdateDatabase(
+	ctx context.Context,
+	queueIDs []string,
+	messageIDs []string,
+	queueStatus entity.QueueStatus,
+	traceIDs map[string]string,
+) error {
+	transaction := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&entity.Queue{}).
+			Where("id IN ?", queueIDs).
+			Updates(map[string]interface{}{"status": queueStatus}).
+			Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&entity.Message{}).
+			Where("id IN ?", messageIDs).
+			Updates(map[string]interface{}{"status": queueStatus}).
+			Error; err != nil {
+			return err
+		}
+
+		// 更新 Target 狀態和 driver_trace_id
+		if len(traceIDs) > 0 {
+			for queueId, traceId := range traceIDs {
+				if err := tx.Model(&entity.Target{}).
+					Where("queue_id = ?", queueId).
+					Update("status", queueStatus).
+					Update("driver_trace_id", traceId).
+					Error; err != nil {
+					return err
+				}
+			}
+		} else {
+			if err := tx.Model(&entity.Target{}).
+				Where("queue_id IN ?", queueIDs).
+				Updates(map[string]interface{}{"status": queueStatus}).
+				Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if transaction != nil {
+		return transaction
+	}
+	return nil
+}
+
+func (s *NotifyService) createKafkaMessage(
+	messageType entity.MessageType,
+	queue *entity.Queue,
+) (*sarama.ProducerMessage, error) {
+	jsonData, err := json.Marshal(queue)
+	if err != nil {
+		return nil, fmt.Errorf("marshal queue failed: %w", err)
+	}
+
+	driverTraceId := s.snowflake.Generate().String()
+	msg := &sarama.ProducerMessage{
+		Topic: getKafkaTopicByMessageType(messageType),
+		Key:   sarama.StringEncoder(driverTraceId),
+		Value: sarama.ByteEncoder(jsonData),
+	}
+
+	return msg, nil
+}
+
+func extractBatchData(queues []*entity.Queue) ([]string, []string) {
+	queueIDs := make([]string, 0, len(queues))
+	messageIDs := make([]string, 0, len(queues))
+
+	for _, queue := range queues {
+		queueIDs = append(queueIDs, queue.Id)
+		messageIDs = append(messageIDs, queue.MessageId)
+	}
+
+	return queueIDs, messageIDs
+}
+
+func withRetry(ctx context.Context, maxRetries int, fn func() error) error {
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		if err = fn(); err == nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second * time.Duration(i+1)):
+		}
+	}
+	return err
+}
+
+func getKafkaTopicByMessageType(messageType entity.MessageType) string {
+	switch messageType {
+	case entity.MessageType_SMS:
+		return shared.KafkaTopicSms
+	case entity.MessageType_MAIL:
+		return shared.KafkaTopicMail
+	default:
+		return ""
+	}
 }

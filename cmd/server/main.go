@@ -142,6 +142,18 @@ func main() {
 				EnvVars:     []string{"MAIL_PROVIDER_API_TOKEN"},
 				Destination: &config.MailProviderToken,
 			},
+			&cli.StringFlag{
+				Name:        "kafka-broker",
+				Usage:       "Kafka broker",
+				EnvVars:     []string{"KAFKA_BROKERS"},
+				Destination: &config.KafkaBrokers,
+			},
+			&cli.StringFlag{
+				Name:        "kafka-version",
+				Usage:       "Kafka version",
+				EnvVars:     []string{"KAFKA_VERSION"},
+				Destination: &config.KafkaVersion,
+			},
 		},
 		Action: execute,
 	}
@@ -179,6 +191,7 @@ func execute(cCtx *cli.Context) error {
 			component.NewAesGcm,
 			component.NewDb,
 			component.NewValidator,
+			component.NewProducer,
 			fx.Annotate(
 				component.NewGrpcServer,
 				fx.ParamTags("", "", `group:"grpcServices"`),

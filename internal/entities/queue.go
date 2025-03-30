@@ -10,6 +10,7 @@ type QueueStatus string
 
 const (
 	QueueStatus_PENDING  QueueStatus = "pending"  // 待處理
+	QueueStatus_PROCESS  QueueStatus = "process"  // 處理中
 	QueueStatus_ENQUEUED QueueStatus = "enqueued" // 已加入佇列
 	QueueStatus_SENDING  QueueStatus = "sending"  // 發送中
 	QueueStatus_SUCCESS  QueueStatus = "success"  // 發送成功

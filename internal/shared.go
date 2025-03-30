@@ -5,6 +5,12 @@ const (
 	LOG_FORMAT_TEXT = "text"
 )
 
+const (
+	KafkaTopicSms      = "notify-sms"
+	KafkaTopicMail     = "notify-mail"
+	KafkaGroupIdNotify = "notify"
+)
+
 type Config struct {
 	GrpcPort               int
 	PostgresHost           string
@@ -26,4 +32,6 @@ type Config struct {
 	MailProvider           string
 	MailProviderBatchLimit int
 	MailProviderToken      string
+	KafkaBrokers           string
+	KafkaVersion           string
 }
