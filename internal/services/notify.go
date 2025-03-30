@@ -88,7 +88,7 @@ func (s NotifyService) PublishSmsMessage(ctx context.Context, in model.SendSmsRe
 	}
 
 	if message.ScheduledAt == nil {
-		err := s.handleEnqueue(ctx, entity.MessageType_MAIL, queues)
+		err := s.HandleEnqueue(ctx, entity.MessageType_MAIL, queues)
 		if err != nil {
 			return nil, s.ServerError("handle enqueue failed", errorpb.ErrorReasonCode_ERR_COMMON_INTERNAL)
 		}
@@ -142,7 +142,7 @@ func (s NotifyService) PublishMailMessage(ctx context.Context, in model.SendMail
 	}
 
 	if message.ScheduledAt == nil {
-		err := s.handleEnqueue(ctx, entity.MessageType_MAIL, queues)
+		err := s.HandleEnqueue(ctx, entity.MessageType_MAIL, queues)
 		if err != nil {
 			return nil, s.ServerError("handle enqueue failed", errorpb.ErrorReasonCode_ERR_COMMON_INTERNAL)
 		}
@@ -338,7 +338,7 @@ func (s NotifyService) ListStatusWithPaging(ctx context.Context, in model.ListSt
 	return targets, total, nil
 }
 
-func (s *NotifyService) handleEnqueue(
+func (s *NotifyService) HandleEnqueue(
 	ctx context.Context,
 	messageType entity.MessageType,
 	queues []*entity.Queue,

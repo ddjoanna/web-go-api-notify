@@ -34,4 +34,5 @@ type Config struct {
 	MailProviderToken      string
 	KafkaBrokers           string
 	KafkaVersion           string
+	JobName                string
 }

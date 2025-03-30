@@ -28,13 +28,17 @@ grpcui:
 #========================#
 build:
 	go build -o bin/server cmd/server/main.go && \
-	go build -o bin/worker cmd/worker/main.go
+	go build -o bin/worker cmd/worker/main.go && \
+	go build -o bin/cronjob cmd/cronjob/main.go
 	
 run:
 	go run cmd/server/main.go
 
 run-worker:
 	go run cmd/worker/main.go
+
+run-cronjob:
+	go run cmd/cronjob/main.go
 
 #========================#
 #== KAFKA ==#
