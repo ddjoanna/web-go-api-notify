@@ -1,0 +1,31 @@
+FROM golang:1.22-alpine3.19 AS builder
+
+WORKDIR /app
+
+RUN apk add build-base
+
+COPY go.mod go.sum ./
+COPY proto ./proto
+RUN go mod download
+
+COPY . .
+
+# 靜態編譯二進制文件
+RUN go build -o /app/bin/worker cmd/worker/main.go
+
+FROM alpine:3.19
+
+RUN addgroup -S gouser && adduser -S gouser -G gouser
+
+WORKDIR /app
+
+# 從 builder 複製二進制文件
+COPY --from=builder /app/bin/* /app/
+
+RUN chown -R gouser:gouser /app && chmod +x /app/*
+
+USER gouser
+
+EXPOSE 50051
+
+ENTRYPOINT ["/app/worker"]
