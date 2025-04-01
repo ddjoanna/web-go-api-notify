@@ -88,7 +88,7 @@ func (s NotifyService) PublishSmsMessage(ctx context.Context, in model.SendSmsRe
 	}
 
 	if message.ScheduledAt == nil {
-		err := s.HandleEnqueue(ctx, entity.MessageType_MAIL, queues)
+		err := s.HandleEnqueue(ctx, entity.MessageType_SMS, queues)
 		if err != nil {
 			return nil, s.ServerError("handle enqueue failed", errorpb.ErrorReasonCode_ERR_COMMON_INTERNAL)
 		}
