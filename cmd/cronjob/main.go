@@ -15,7 +15,6 @@ import (
 	metricssdk "go.opentelemetry.io/otel/sdk/metric"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/fx"
-	"google.golang.org/grpc"
 	"gorm.io/gorm"
 )
 
@@ -117,32 +116,6 @@ func main() {
 				EnvVars:     []string{"AES_KEY"},
 				Destination: &config.AESKey,
 			},
-			&cli.IntFlag{
-				Name:        "sms-provider-batch-limit",
-				Usage:       "SMS provider batch limit",
-				EnvVars:     []string{"SMS_PROVIDER_API_BATCH_LIMIT"},
-				Value:       1000,
-				Destination: &config.SmsProviderBatchLimit,
-			},
-			&cli.StringFlag{
-				Name:        "sms-provider-api-token",
-				Usage:       "SMS provider API Token",
-				EnvVars:     []string{"SMS_PROVIDER_API_TOKEN"},
-				Destination: &config.SmsProviderToken,
-			},
-			&cli.IntFlag{
-				Name:        "mail-provider-api-batch-limit",
-				Usage:       "Mail provider API batch limit",
-				EnvVars:     []string{"MAIL_PROVIDER_API_BATCH_LIMIT"},
-				Value:       1000,
-				Destination: &config.MailProviderBatchLimit,
-			},
-			&cli.StringFlag{
-				Name:        "mail-provider-api-token",
-				Usage:       "Mail provider API Token",
-				EnvVars:     []string{"MAIL_PROVIDER_API_TOKEN"},
-				Destination: &config.MailProviderToken,
-			},
 			&cli.StringFlag{
 				Name:        "kafka-broker",
 				Usage:       "Kafka broker",
@@ -203,12 +176,7 @@ func execute(cCtx *cli.Context) error {
 				component.NewSnowflake,
 				component.NewAesGcm,
 				component.NewDb,
-				component.NewValidator,
 				component.NewProducer,
-				fx.Annotate(
-					component.NewGrpcServer,
-					fx.ParamTags("", "", `group:"grpcServices"`),
-				),
 				fx.Annotate(
 					service.NewNotifyService,
 				),
@@ -221,7 +189,6 @@ func execute(cCtx *cli.Context) error {
 			fx.Invoke(
 				func(*tracesdk.TracerProvider) {},
 				func(*metricssdk.MeterProvider) {},
-				func(*grpc.Server) {},
 				func(*gorm.DB) {},
 				func(factory *job.Runner) {
 					jobName := config.JobName
@@ -246,14 +213,6 @@ func execute(cCtx *cli.Context) error {
 		log.Info("Job completed successfully, shutting down...")
 	}
 	return nil
-}
-
-func AsGrpcService(f any) any {
-	return fx.Annotate(
-		f,
-		fx.As(new(component.GrpcService)),
-		fx.ResultTags(`group:"grpcServices"`),
-	)
 }
 
 func AsJob(f any) any {

@@ -28,10 +28,8 @@ type Config struct {
 	AESKey                        string
 	SmsProvider                   string
 	SmsProviderBatchLimit         int
-	SmsProviderToken              string
 	MailProvider                  string
 	MailProviderBatchLimit        int
-	MailProviderToken             string
 	KafkaBrokers                  string
 	KafkaVersion                  string
 	KafkaConsumerGroupInstanceNum int

@@ -123,24 +123,12 @@ func main() {
 				Value:       1000,
 				Destination: &config.SmsProviderBatchLimit,
 			},
-			&cli.StringFlag{
-				Name:        "sms-provider-api-token",
-				Usage:       "SMS provider API Token",
-				EnvVars:     []string{"SMS_PROVIDER_API_TOKEN"},
-				Destination: &config.SmsProviderToken,
-			},
 			&cli.IntFlag{
 				Name:        "mail-provider-api-batch-limit",
 				Usage:       "Mail provider API batch limit",
 				EnvVars:     []string{"MAIL_PROVIDER_API_BATCH_LIMIT"},
 				Value:       1000,
 				Destination: &config.MailProviderBatchLimit,
-			},
-			&cli.StringFlag{
-				Name:        "mail-provider-api-token",
-				Usage:       "Mail provider API Token",
-				EnvVars:     []string{"MAIL_PROVIDER_API_TOKEN"},
-				Destination: &config.MailProviderToken,
 			},
 			&cli.StringFlag{
 				Name:        "kafka-broker",
