@@ -3,9 +3,10 @@ package util
 import (
 	"crypto/md5"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/bwmarrin/snowflake"
 	"google.golang.org/protobuf/types/known/timestamppb"
