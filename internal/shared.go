@@ -36,4 +36,7 @@ type Config struct {
 	KafkaVersion                  string
 	KafkaConsumerGroupInstanceNum int
 	JobName                       string
+	SendgridToken                 string
+	MitakeUserName                string
+	MitakePassword                string
 }
