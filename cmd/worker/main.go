@@ -1,14 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	shared "notify-service/internal"
 	component "notify-service/internal/components"
 	"notify-service/internal/consumer"
 	handler "notify-service/internal/handlers"
+	mailer "notify-service/internal/mailer"
+	service "notify-service/internal/services"
+	smser "notify-service/internal/smser"
 
 	"github.com/IBM/sarama"
+	"github.com/bwmarrin/snowflake"
+	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/uptrace/opentelemetry-go-extra/otellogrus"
 	"github.com/urfave/cli/v2"
@@ -117,6 +123,12 @@ func main() {
 				EnvVars:     []string{"AES_KEY"},
 				Destination: &config.AESKey,
 			},
+			&cli.StringFlag{
+				Name:        "sms-provider",
+				Usage:       "SMS provider",
+				EnvVars:     []string{"SMS_PROVIDER"},
+				Destination: &config.SmsProvider,
+			},
 			&cli.IntFlag{
 				Name:        "sms-provider-batch-limit",
 				Usage:       "SMS provider batch limit",
@@ -129,6 +141,12 @@ func main() {
 				Usage:       "SMS provider API Token",
 				EnvVars:     []string{"SMS_PROVIDER_API_TOKEN"},
 				Destination: &config.SmsProviderToken,
+			},
+			&cli.StringFlag{
+				Name:        "mail-provider",
+				Usage:       "Mail provider",
+				EnvVars:     []string{"MAIL_PROVIDER"},
+				Destination: &config.MailProvider,
 			},
 			&cli.IntFlag{
 				Name:        "mail-provider-api-batch-limit",
@@ -161,6 +179,24 @@ func main() {
 				EnvVars:     []string{"KAFKA_CONSUMER_GROUP_INSTANCE_NUM"},
 				Value:       1,
 				Destination: &config.KafkaConsumerGroupInstanceNum,
+			},
+			&cli.StringFlag{
+				Name:        "sendgrid-api-token",
+				Usage:       "Sendgrid API Token",
+				EnvVars:     []string{"SENDGRID_TOKEN"},
+				Destination: &config.SendgridToken,
+			},
+			&cli.StringFlag{
+				Name:        "mitake-user-name",
+				Usage:       "Mitake user name",
+				EnvVars:     []string{"MITAKE_USER_NAME"},
+				Destination: &config.MitakeUserName,
+			},
+			&cli.StringFlag{
+				Name:        "mitake-password",
+				Usage:       "Mitake password",
+				EnvVars:     []string{"MITAKE_PASSWORD"},
+				Destination: &config.MitakePassword,
 			},
 		},
 		Action: execute,
@@ -200,11 +236,16 @@ func execute(cCtx *cli.Context) error {
 			component.NewDb,
 			component.NewValidator,
 			component.NewConsumerGroup,
+			component.NewRestyClient,
 			consumer.NewConsumer,
 			fx.Annotate(
 				component.NewGrpcServer,
 				fx.ParamTags("", "", `group:"grpcServices"`),
 			),
+			provideSmsProvider,
+			provideMailProvider,
+			service.NewSmsService,
+			service.NewMailService,
 		),
 		fx.Invoke(
 			func(*tracesdk.TracerProvider) {},
@@ -212,13 +253,49 @@ func execute(cCtx *cli.Context) error {
 			func(*grpc.Server) {},
 			func(*gorm.DB) {},
 			func([]sarama.ConsumerGroup) {},
-			func(
-				consumer *consumer.Consumer,
-			) {
-				consumer.RegisterHandler(shared.KafkaTopicSms, handler.NewSmsHandler())
-				consumer.RegisterHandler(shared.KafkaTopicMail, handler.NewMailHandler())
-			},
+			registerSmsHandler,
+			registerMailHandler,
 		),
 	).Run()
 	return nil
+}
+
+func registerSmsHandler(
+	consumer *consumer.Consumer,
+	smsService *service.SmsService,
+	db *gorm.DB,
+	config *shared.Config,
+	snowflake *snowflake.Node,
+) {
+	handler := handler.NewSmsHandler(db, config, snowflake, smsService)
+	consumer.RegisterHandler(shared.KafkaTopicSms, handler)
+}
+
+func registerMailHandler(
+	consumer *consumer.Consumer,
+	mailService *service.MailService,
+	db *gorm.DB,
+	config *shared.Config,
+	snowflake *snowflake.Node,
+) {
+	handler := handler.NewMailHandler(db, config, snowflake, mailService)
+	consumer.RegisterHandler(shared.KafkaTopicMail, handler)
+}
+
+func provideSmsProvider(config *shared.Config, resty *resty.Client) (smser.SmsProvider, error) {
+	switch config.SmsProvider {
+	case "mitake":
+		return smser.NewMitakeSmser(config, resty), nil
+	default:
+		return nil, fmt.Errorf("unsupported SMS provider type: %s", config.SmsProvider)
+	}
+}
+
+func provideMailProvider(config *shared.Config) (mailer.MailProvider, error) {
+	switch config.MailProvider {
+	case "sendgrid":
+		return mailer.NewSendGridMailer(config), nil
+	default:
+		return nil, fmt.Errorf("unsupported mail provider type: %s", config.MailProvider)
+	}
 }

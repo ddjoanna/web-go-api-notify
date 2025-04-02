@@ -17,6 +17,16 @@ const (
 	EventStatus_FAILED    EventStatus = "failed"    // 發送失敗
 )
 
+var (
+	ConvertEventStatusWithString = map[string]EventStatus{
+		string(EventStatus_SENT):      EventStatus_SENT,
+		string(EventStatus_DELIVERED): EventStatus_DELIVERED,
+		string(EventStatus_OPENED):    EventStatus_OPENED,
+		string(EventStatus_CLICKED):   EventStatus_CLICKED,
+		string(EventStatus_FAILED):    EventStatus_FAILED,
+	}
+)
+
 type Event struct {
 	Id              string          `gorm:"primaryKey" json:"id"`
 	Provider        string          `json:"provider"`                         // 事件來源

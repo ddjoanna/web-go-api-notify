@@ -19,6 +19,8 @@ const (
 	MessageStatus_PENDING   MessageStatus = "pending"   // 待處理
 	MessageStatus_ENQUEUED  MessageStatus = "enqueued"  // 已加入佇列
 	MessageStatus_SCHEDULED MessageStatus = "scheduled" // 已排定
+	MessageStatus_SENT      MessageStatus = "sent"      // 已發送
+	MessageStatus_FAILED    MessageStatus = "failed"    // 發送失敗
 	MessageStatus_CANCELED  MessageStatus = "canceled"  // 已取消
 )
 

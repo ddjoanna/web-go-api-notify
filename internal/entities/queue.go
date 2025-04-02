@@ -35,6 +35,7 @@ type Queue struct {
 
 	// 外鍵關聯
 	Targets []Target `gorm:"foreignKey:QueueId" json:"targets"`
+	Message Message  `gorm:"foreignKey:MessageId" json:"message"`
 }
 
 func (Queue) TableName() string {
